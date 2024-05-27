@@ -142,6 +142,7 @@ class Authenticate:
 
         self.nt_hash: str = None
         self.lm_hash: str = None
+        self.encryption_type: str = None
 
         if self.pfx is not None:
             with open(self.pfx, "rb") as f:
@@ -571,8 +572,9 @@ class Authenticate:
             seq_set_iter(
                 req_body,
                 "etype",
-                (int(cipher.enctype), int(constants.EncryptionTypes.rc4_hmac.value)),
+                (int(constants.EncryptionTypes.aes256_cts_hmac_sha1_96.value), int(constants.EncryptionTypes.aes128_cts_hmac_sha1_96.value)),
             )
+            #(int(cipher.enctype), int(constants.EncryptionTypes.rc4_hmac.value))
 
             ticket = ticket.to_asn1(TicketAsn1())
             seq_set_iter(req_body, "additional-tickets", (ticket,))
@@ -587,7 +589,7 @@ class Authenticate:
             new_cipher = _enctype_table[int(tgs["ticket"]["enc-part"]["etype"])]
 
             plaintext = new_cipher.decrypt(session_key, 2, ciphertext)
-            special_key = Key(18, t_key)
+            special_key = Key(new_cipher.enctype, t_key)
 
             data = plaintext
             enc_ticket_part = decoder.decode(data, asn1Spec=EncTicketPart())[0]
@@ -632,9 +634,10 @@ class Authenticate:
 
             self.lm_hash = lm_hash
             self.nt_hash = nt_hash
+            self.encryption_type = new_cipher.name
 
             if not is_key_credential:
-                logging.info("Got hash for %s: %s:%s", repr(upn), lm_hash, nt_hash)
+                logging.info("Got hash for %s using cipher %s: %s:%s", repr(upn), new_cipher.name, lm_hash, nt_hash)
 
             return nt_hash
 
