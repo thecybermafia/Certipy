@@ -634,7 +634,7 @@ class Authenticate:
 
             self.lm_hash = lm_hash
             self.nt_hash = nt_hash
-            self.encryption_type = new_cipher.name
+            self.encryption_type = _enctype_table[int(tgs["ticket"]["enc-part"]["etype"])]
 
             if not is_key_credential:
                 logging.info("Got hash for %s using cipher %s: %s:%s", repr(upn), new_cipher.name, lm_hash, nt_hash)
