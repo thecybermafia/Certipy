@@ -617,10 +617,20 @@ class Authenticate:
                     type1 = TypeSerialization1(out)
                     new_data = out[len(type1) + 4 :]
                     pcc = PAC_CREDENTIAL_DATA(new_data)
+
+                    # Print cred_info
+                    logging.info("Credential Info:")
+                    logging.info(cred_info)
+    
                     for cred in pcc["Credentials"]:
                         cred_structs = NTLM_SUPPLEMENTAL_CREDENTIAL(
                             b"".join(cred["Credentials"])
                         )
+
+                        # Print cred_structs
+                        logging.info("Credential Structures:")
+                        logging.info(cred_structs)
+
                         if any(cred_structs["LmPassword"]):
                             lm_hash = cred_structs["LmPassword"].hex()
                         nt_hash = cred_structs["NtPassword"].hex()
@@ -637,7 +647,7 @@ class Authenticate:
             self.encryption_type = _enctype_table[int(tgs["ticket"]["enc-part"]["etype"])]
 
             if not is_key_credential:
-                logging.info("Got hash for %s using cipher %s: %s:%s", repr(upn), encryption_type, lm_hash, nt_hash)
+                logging.info("Got hash for %s using cipher: %s:%s", repr(upn), lm_hash, nt_hash)
 
             return nt_hash
 
