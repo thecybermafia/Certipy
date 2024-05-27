@@ -637,7 +637,7 @@ class Authenticate:
             self.encryption_type = _enctype_table[int(tgs["ticket"]["enc-part"]["etype"])]
 
             if not is_key_credential:
-                logging.info("Got hash for %s using cipher %s: %s:%s", repr(upn), new_cipher.name, lm_hash, nt_hash)
+                logging.info("Got hash for %s using cipher %s: %s:%s", repr(upn), encryption_type, lm_hash, nt_hash)
 
             return nt_hash
 
