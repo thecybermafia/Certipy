@@ -1,5 +1,6 @@
 import argparse
 import base64
+from binascii import hexlify
 import datetime
 import os
 import platform
@@ -188,8 +189,6 @@ class Authenticate:
             cert_username, cert_domain = cert_id_to_parts([(id_type, identification)])
 
             object_sid = get_object_sid_from_certificate(self.cert)
-
-            logging.info("Object SID: %s", object_sid)
 
             if not any([cert_username, cert_domain]):
                 logging.warning(
@@ -443,6 +442,8 @@ class Authenticate:
             logging.error("Unexpected encryption type in AS_REP")
             return False
 
+        logging.log(logging.INFO, "Generated AES key: %s", t_key.hex())
+
         key = Key(cipher.enctype, t_key)
         enc_data = as_rep["enc-part"]["cipher"]
         dec_data = cipher.decrypt(key, 3, enc_data)
@@ -450,9 +451,6 @@ class Authenticate:
 
         cipher = _enctype_table[int(enc_as_rep_part["key"]["keytype"])]
         session_key = Key(cipher.enctype, bytes(enc_as_rep_part["key"]["keyvalue"]))
-
-        logging.info("Ticket etype:")
-        logging.info(etype)
 
         ccache = CCache()
         ccache.fromTGT(tgt, key, None)
@@ -593,11 +591,12 @@ class Authenticate:
 
             new_cipher = _enctype_table[int(tgs["ticket"]["enc-part"]["etype"])]
 
-            logging.info("New Cipher etype:")
-            logging.info(int(tgs["ticket"]["enc-part"]["etype"]))
+            logging.info("Encryption type: %s %d", constants.EncryptionTypes(int(tgs["ticket"]["enc-part"]["etype"])).name, int(tgs["ticket"]["enc-part"]["etype"]))
 
             plaintext = new_cipher.decrypt(session_key, 2, ciphertext)
             special_key = Key(new_cipher.enctype, t_key)
+
+            logging.log(logging.INFO, "Using AES key for special_key: %s", t_key.hex())
 
             data = plaintext
             enc_ticket_part = decoder.decode(data, asn1Spec=EncTicketPart())[0]
@@ -611,6 +610,8 @@ class Authenticate:
             nt_hash = None
             lm_hash = "aad3b435b51404eeaad3b435b51404ee"
 
+            parsed_tuPAC = []
+
             for _ in range(pac_type["cBuffers"]):
                 info_buffer = PAC_INFO_BUFFER(buff)
                 data = pac_type["Buffers"][info_buffer["Offset"] - 8 :][
@@ -619,17 +620,52 @@ class Authenticate:
                 if info_buffer["ulType"] == 2:
                     cred_info = PAC_CREDENTIAL_INFO(data)
                     new_cipher = _enctype_table[cred_info["EncryptionType"]]
+
+                    if new_cipher == constants.EncryptionTypes.aes256_cts_hmac_sha1_96.value:
+                        logging.info("PAC is encrypted with AES256")
+                    else:
+                        logging.info("PAC is not encrypted with AES256")
+
                     out = new_cipher.decrypt(
                         special_key, 16, cred_info["SerializedData"]
                     )
                     type1 = TypeSerialization1(out)
                     new_data = out[len(type1) + 4 :]
                     pcc = PAC_CREDENTIAL_DATA(new_data)
+
+                    parsed_credential_data = {
+                    "Credential Count": pcc['CredentialCount']
+                    }
+                    parsed_tuPAC.append({"Credential Data": parsed_credential_data})
+                    logging.info("Credential Count: %d", pcc['CredentialCount'])
     
                     for cred in pcc["Credentials"]:
+                        parsed_secpkg_supplemental_cred = {
+                            "Package Name": pcc['PackageName'],
+                            "Credential Size": pcc['CredentialSize']
+                        }
+                        parsed_tuPAC.append({"SecPkg Credentials": parsed_secpkg_supplemental_cred})
+
+                        logging.info("Package Name: %s", credential['PackageName'])
+                        logging.info("Credential Size: %d", credential['CredentialSize'])
+
                         cred_structs = NTLM_SUPPLEMENTAL_CREDENTIAL(
                             b"".join(cred["Credentials"])
                         )
+
+                        parsed_ntlm_supplemental_cred = {
+                            "Version": cred_structs['Version'],
+                            "Flags": cred_structs['Flags'],
+                            "LmPassword": hexlify(cred_structs['LmPassword']).decode('utf-8'),
+                            "NtPassword": hexlify(cred_structs['NtPassword']).decode('utf-8')
+                        }
+                        parsed_tuPAC.append({"NTLM Credentials": parsed_ntlm_supplemental_cred})
+
+                        logging.info("NTLM Credentials: Version: %d, Flags: %d, LmPassword: %s, NtPassword: %s",
+                         cred_structs['Version'],
+                         cred_structs['Flags'],
+                         hexlify(cred_structs['LmPassword']).decode('utf-8'),
+                         hexlify(cred_structs['NtPassword']).decode('utf-8'))
 
                         if any(cred_structs["LmPassword"]):
                             lm_hash = cred_structs["LmPassword"].hex()
