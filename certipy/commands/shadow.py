@@ -217,8 +217,8 @@ class Shadow:
             )
 
         logging.info(
-        "NT hash for %s using cipher %s: %s"
-        % (repr(user.get("sAMAccountName")), authenticate.encryption_type, authenticate.nt_hash))
+        "NT hash for %s using cipher: %s"
+        % (repr(user.get("sAMAccountName")), authenticate.nt_hash))
         )
 
         return authenticate.nt_hash
