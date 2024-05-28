@@ -643,8 +643,8 @@ class Authenticate:
     
                     for cred in pcc["Credentials"]:
                         parsed_secpkg_supplemental_cred = {
-                            "Package Name": pcc['PackageName'],
-                            "Credential Size": pcc['CredentialSize']
+                            "Package Name": cred['PackageName'],
+                            "Credential Size": cred['CredentialSize']
                         }
                         parsed_tuPAC.append({"SecPkg Credentials": parsed_secpkg_supplemental_cred})
 
@@ -658,16 +658,16 @@ class Authenticate:
                         parsed_ntlm_supplemental_cred = {
                             "Version": cred_structs['Version'],
                             "Flags": cred_structs['Flags'],
-                            "LmPassword": hexlify(cred_structs['LmPassword']).decode('utf-8'),
-                            "NtPassword": hexlify(cred_structs['NtPassword']).decode('utf-8')
+                            "LmPassword": cred_structs["LmPassword"].hex(),
+                            "NtPassword": cred_structs["NtPassword"].hex()
                         }
                         parsed_tuPAC.append({"NTLM Credentials": parsed_ntlm_supplemental_cred})
 
                         logging.info("NTLM Credentials: Version: %d, Flags: %d, LmPassword: %s, NtPassword: %s",
                          cred_structs['Version'],
                          cred_structs['Flags'],
-                         hexlify(cred_structs['LmPassword']).decode('utf-8'),
-                         hexlify(cred_structs['NtPassword']).decode('utf-8'))
+                         cred_structs["LmPassword"].hex(),
+                         cred_structs["NtPassword"].hex())
 
                         if any(cred_structs["LmPassword"]):
                             lm_hash = cred_structs["LmPassword"].hex()
