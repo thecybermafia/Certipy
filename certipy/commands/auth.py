@@ -623,8 +623,10 @@ class Authenticate:
 
                     if new_cipher == constants.EncryptionTypes.aes256_cts_hmac_sha1_96.value:
                         logging.info("PAC is encrypted with AES256")
+                    elif new_cipher == constants.EncryptionTypes.rc4_hmac.value:
+                        logging.info("PAC is encrypted with RC4")
                     else:
-                        logging.info("PAC is not encrypted with AES256")
+                        logging.info("PAC is not encrypted with a supported encryption type")
 
                     out = new_cipher.decrypt(
                         special_key, 16, cred_info["SerializedData"]
@@ -646,8 +648,8 @@ class Authenticate:
                         }
                         parsed_tuPAC.append({"SecPkg Credentials": parsed_secpkg_supplemental_cred})
 
-                        logging.info("Package Name: %s", credential['PackageName'])
-                        logging.info("Credential Size: %d", credential['CredentialSize'])
+                        logging.info("Package Name: %s", cred['PackageName'])
+                        logging.info("Credential Size: %d", cred['CredentialSize'])
 
                         cred_structs = NTLM_SUPPLEMENTAL_CREDENTIAL(
                             b"".join(cred["Credentials"])
