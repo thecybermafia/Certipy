@@ -189,6 +189,8 @@ class Authenticate:
 
             object_sid = get_object_sid_from_certificate(self.cert)
 
+            logging.info("Object SID: %s", object_sid)
+
             if not any([cert_username, cert_domain]):
                 logging.warning(
                     "Could not find identification in the provided certificate"
@@ -449,6 +451,9 @@ class Authenticate:
         cipher = _enctype_table[int(enc_as_rep_part["key"]["keytype"])]
         session_key = Key(cipher.enctype, bytes(enc_as_rep_part["key"]["keyvalue"]))
 
+        logging.info("Ticket etype:")
+        logging.info(etype)
+
         ccache = CCache()
         ccache.fromTGT(tgt, key, None)
         krb_cred = ccache.toKRBCRED()
@@ -572,7 +577,7 @@ class Authenticate:
             seq_set_iter(
                 req_body,
                 "etype",
-                (int(constants.EncryptionTypes.aes256_cts_hmac_sha1_96.value), int(constants.EncryptionTypes.aes128_cts_hmac_sha1_96.value)),
+                (int(constants.EncryptionTypes.aes256_cts_hmac_sha1_96.value), int(constants.EncryptionTypes.aes256_cts_hmac_sha1_96.value)),
             )
             #(int(cipher.enctype), int(constants.EncryptionTypes.rc4_hmac.value))
 
@@ -587,6 +592,9 @@ class Authenticate:
             ciphertext = tgs["ticket"]["enc-part"]["cipher"]
 
             new_cipher = _enctype_table[int(tgs["ticket"]["enc-part"]["etype"])]
+
+            logging.info("New Cipher etype:")
+            logging.info(int(tgs["ticket"]["enc-part"]["etype"]))
 
             plaintext = new_cipher.decrypt(session_key, 2, ciphertext)
             special_key = Key(new_cipher.enctype, t_key)
@@ -617,19 +625,11 @@ class Authenticate:
                     type1 = TypeSerialization1(out)
                     new_data = out[len(type1) + 4 :]
                     pcc = PAC_CREDENTIAL_DATA(new_data)
-
-                    # Print cred_info
-                    logging.info("Credential Info:")
-                    logging.info(cred_info)
     
                     for cred in pcc["Credentials"]:
                         cred_structs = NTLM_SUPPLEMENTAL_CREDENTIAL(
                             b"".join(cred["Credentials"])
                         )
-
-                        # Print cred_structs
-                        logging.info("Credential Structures:")
-                        logging.info(cred_structs)
 
                         if any(cred_structs["LmPassword"]):
                             lm_hash = cred_structs["LmPassword"].hex()
@@ -644,7 +644,6 @@ class Authenticate:
 
             self.lm_hash = lm_hash
             self.nt_hash = nt_hash
-            self.encryption_type = _enctype_table[int(tgs["ticket"]["enc-part"]["etype"])]
 
             if not is_key_credential:
                 logging.info("Got hash for %s using cipher: %s:%s", repr(upn), lm_hash, nt_hash)
