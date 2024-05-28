@@ -442,7 +442,7 @@ class Authenticate:
             logging.error("Unexpected encryption type in AS_REP")
             return False
 
-        logging.log(logging.INFO, "Generated AES key: %s", t_key.hex())
+        logging.info( "Generated AES key: %s", t_key.hex())
 
         key = Key(cipher.enctype, t_key)
         enc_data = as_rep["enc-part"]["cipher"]
@@ -596,7 +596,7 @@ class Authenticate:
             plaintext = new_cipher.decrypt(session_key, 2, ciphertext)
             special_key = Key(new_cipher.enctype, t_key)
 
-            logging.log(logging.INFO, "Using AES key for special_key: %s", t_key.hex())
+            logging.info("Using AES key for special_key: %s", t_key.hex())
 
             data = plaintext
             enc_ticket_part = decoder.decode(data, asn1Spec=EncTicketPart())[0]
