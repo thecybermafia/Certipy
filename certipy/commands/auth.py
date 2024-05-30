@@ -626,7 +626,7 @@ class Authenticate:
                     elif cred_info["EncryptionType"] == constants.EncryptionTypes.rc4_hmac.value:
                         logging.info("PAC is encrypted with RC4")
                     else:
-                        logging.info("PAC is encrypted with a supported encryption type: %s", cred_info["EncryptionType"])
+                        logging.info("PAC is encrypted with a not supported encryption type: %s", cred_info["EncryptionType"])
 
                     out = new_cipher.decrypt(
                         special_key, 16, cred_info["SerializedData"]
