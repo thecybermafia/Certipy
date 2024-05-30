@@ -442,7 +442,7 @@ class Authenticate:
             logging.error("Unexpected encryption type in AS_REP")
             return False
 
-        logging.info( "Generated AES key: %s", t_key.hex())
+        logging.info( "Generated AS_REP AES key: %s", t_key.hex())
 
         key = Key(cipher.enctype, t_key)
         enc_data = as_rep["enc-part"]["cipher"]
@@ -621,12 +621,12 @@ class Authenticate:
                     cred_info = PAC_CREDENTIAL_INFO(data)
                     new_cipher = _enctype_table[cred_info["EncryptionType"]]
 
-                    if new_cipher == constants.EncryptionTypes.aes256_cts_hmac_sha1_96.value:
+                    if cred_info["EncryptionType"] == constants.EncryptionTypes.aes256_cts_hmac_sha1_96.value:
                         logging.info("PAC is encrypted with AES256")
-                    elif new_cipher == constants.EncryptionTypes.rc4_hmac.value:
+                    elif cred_info["EncryptionType"] == constants.EncryptionTypes.rc4_hmac.value:
                         logging.info("PAC is encrypted with RC4")
                     else:
-                        logging.info("PAC is not encrypted with a supported encryption type")
+                        logging.info("PAC is encrypted with a supported encryption type: %s", cred_info["EncryptionType"])
 
                     out = new_cipher.decrypt(
                         special_key, 16, cred_info["SerializedData"]
